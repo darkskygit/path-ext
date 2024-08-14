@@ -1,3 +1,4 @@
+use path_slash::PathExt as PathSlashExt;
 use std::fs::{create_dir, create_dir_all, metadata, remove_dir_all, remove_file};
 use std::io::{self, Result};
 use std::path::is_separator;
@@ -6,6 +7,14 @@ use walkdir::WalkDir;
 pub use std::path::{Path, PathBuf};
 
 pub trait PathExt {
+    /// output full path with slash
+    ///
+    /// e.g. "test\test.txt" -> "test/test.txt"
+    fn slash_str(&self) -> String;
+    /// output full path with backslash
+    ///
+    /// e.g. "test/test.txt" -> "test\test.txt"
+    // fn backslash_str(&self) -> &str;
     fn full_str(&self) -> &str;
     fn ext_str(&self) -> &str;
     fn stem_str(&self) -> &str;
@@ -19,6 +28,14 @@ pub trait PathExt {
 }
 
 impl<T: AsRef<Path>> PathExt for T {
+    #[inline]
+    fn slash_str(&self) -> String {
+        self.as_ref()
+            .to_slash()
+            .map(|s| s.to_string())
+            .unwrap_or_default()
+    }
+
     #[inline]
     fn full_str(&self) -> &str {
         self.as_ref().to_str().unwrap_or_default()
@@ -115,22 +132,27 @@ impl<T: AsRef<Path>> PathExt for T {
     }
 }
 
-#[test]
-fn test_path() {
-    let path1 = PathBuf::from("Z:\\Movies\\[VCB-Studio] Fate Zero [Ma10p_1080p]\\[VCB-Studio] Fate Zero [04][Ma10p_1080p][x265_flac].mkv");
-    println!("full path: {}", path1.full_str());
-    println!("file ext: {}", path1.ext_str());
-    println!("file stem: {}", path1.stem_str());
-    println!("file name: {}", path1.name_str());
-    let path2 = PathBuf::from("Z:\\Movies");
-    let path3 = PathBuf::from("[VCB-Studio] Fate Zero [Ma10p_1080p]\\[VCB-Studio] Fate Zero [04][Ma10p_1080p][x265_flac].mkv");
-    let path4 = path2.merge(path3);
-    println!("merged full path: {}", path4.full_str());
-    println!("file: {}", path1.is_file());
-    println!("dir: {}", path2.is_dir());
-    if let Some(parent) = path4.parent() {
-        for path in parent.walk_dir(|p| p.is_dir()) {
-            println!("subdir: {}", path.full_str());
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_path() {
+        let path1 = PathBuf::from("Z:\\Movies\\[VCB-Studio] Fate Zero [Ma10p_1080p]\\[VCB-Studio] Fate Zero [04][Ma10p_1080p][x265_flac].mkv");
+        println!("full path: {}", path1.full_str());
+        println!("file ext: {}", path1.ext_str());
+        println!("file stem: {}", path1.stem_str());
+        println!("file name: {}", path1.name_str());
+        let path2 = PathBuf::from("Z:\\Movies");
+        let path3 = PathBuf::from("[VCB-Studio] Fate Zero [Ma10p_1080p]\\[VCB-Studio] Fate Zero [04][Ma10p_1080p][x265_flac].mkv");
+        let path4 = path2.merge(path3);
+        println!("merged full path: {}", path4.full_str());
+        println!("file: {}", path1.is_file());
+        println!("dir: {}", path2.is_dir());
+        if let Some(parent) = path4.parent() {
+            for path in parent.walk_dir(|p| p.is_dir()) {
+                println!("subdir: {}", path.full_str());
+            }
         }
     }
 }
