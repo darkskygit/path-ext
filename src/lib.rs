@@ -24,6 +24,7 @@ pub trait PathExt {
     fn is_file(&self) -> bool;
     fn is_dir(&self) -> bool;
     fn walk_dir<F: Fn(&Path) -> bool>(&self, filter: F) -> Vec<PathBuf>;
+    fn walk_iter<F: Fn(&Path) -> bool>(&self, filter: F) -> impl Iterator<Item = PathBuf>;
     fn mkdir_after_remove(&self) -> io::Result<PathBuf>;
 }
 
@@ -124,11 +125,18 @@ impl<T: AsRef<Path>> PathExt for T {
 
     #[inline]
     fn walk_dir<F: Fn(&Path) -> bool>(&self, filter: F) -> Vec<PathBuf> {
-        WalkDir::new(self)
-            .into_iter()
-            .filter_entry(|e| filter(e.path()))
-            .filter_map(|e| e.map(|item| item.into_path()).ok())
-            .collect()
+        self.walk_iter(filter).collect()
+    }
+
+    #[inline]
+    fn walk_iter<F: Fn(&Path) -> bool>(&self, filter: F) -> impl Iterator<Item = PathBuf> {
+        let walker = WalkDir::new(self)
+            .sort_by(|a, b| b.file_name().cmp(a.file_name()))
+            .into_iter();
+        walker
+            .filter_map(|e| e.ok())
+            .filter(move |e| filter(e.path()))
+            .map(|e| e.into_path())
     }
 }
 
